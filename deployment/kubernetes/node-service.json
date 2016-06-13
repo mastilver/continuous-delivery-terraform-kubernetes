@@ -1,0 +1,23 @@
+{
+    "kind": "Service",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "my-service",
+        "labels": {
+            "app": "test-cd"
+        }
+    },
+    "spec": {
+        "type": "LoadBalancer",
+        "selector": {
+            "app": "test-cd"
+        },
+        "ports": [
+            {
+                "protocol": "TCP",
+                "port": 80,
+                "targetPort": 3000
+            }
+        ]
+    }
+}

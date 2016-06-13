@@ -1,0 +1,7 @@
+# Node
+node_modules
+*.log
+
+# Terraform
+terraform.tfstate
+terraform.tfstate.backup

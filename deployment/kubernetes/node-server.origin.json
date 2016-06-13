@@ -1,0 +1,34 @@
+{
+    "apiVersion": "extensions/v1beta1",
+    "kind": "Deployment",
+    "metadata": {
+        "name": "node-server",
+        "labels": {
+            "app": "test-cd"
+        }
+    },
+    "spec": {
+        "replicas": 2,
+        "template": {
+            "metadata": {
+                "labels": {
+                    "run": "node-server",
+                    "app": "test-cd"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "node-server",
+                        "image": "gcr.io/cd-test-1300/node-server:$CIRCLE_SHA1",
+                        "ports": [
+                            {
+                                "containerPort": 3000
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}

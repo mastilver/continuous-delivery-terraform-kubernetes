@@ -1,0 +1,86 @@
+machine:
+  environment:
+    PROJECT_NAME: cd-test-1300
+    CLUSTER_NAME: cd-test-cluster
+    CLOUDSDK_COMPUTE_ZONE: europe-west1-d
+    DEBIAN_FRONTEND: noninteractive
+  services:
+    - docker
+  node:
+    version: 4
+
+dependencies:
+  pre:
+    # Setup terraform
+    - wget https://releases.hashicorp.com/terraform/0.6.15/terraform_0.6.15_linux_amd64.zip
+    - unzip terraform_0.6.15_linux_amd64.zip -d ~/bin
+
+    # Update Google cloud tools
+    - sudo /opt/google-cloud-sdk/bin/gcloud --quiet components update
+    - sudo /opt/google-cloud-sdk/bin/gcloud --quiet components update kubectl
+
+    # Expose Google cloud credentials
+    - echo $ACCT_AUTH | base64 --decode -i > ~/account-auth.json
+
+    # Setup dynamic definition
+    - envsubst < ./deployment/kubernetes/node-server.origin.json > ./deployment/kubernetes/node-server.json
+test:
+  override:
+
+    - npm test
+
+    # Build docker image
+    - >
+      npm build
+      npm prune --production
+      docker build -t gcr.io/$PROJECT_NAME/node-server:$CIRCLE_SHA1 .
+
+    # Run and test docker image
+    # TODO: run a local cluster instead
+    - docker run -d -p 8080:8080 gcr.io/$PROJECT_NAME/node-server:$CIRCLE_SHA1; sleep 10
+    - curl 'http://localhost:8080'
+
+    # Test terraform config
+    - TF_VAR_node_service_ip='93.184.216.34' terraform plan -refresh=false ./deployment/terraform
+
+deployment:
+  prod:
+    branch: master
+    commands:
+      # Setup Google cloud
+      - gcloud auth activate-service-account --key-file ~/account-auth.json
+      - gcloud config set compute/zone $CLOUDSDK_COMPUTE_ZONE
+      - gcloud config set project $PROJECT_NAME
+      - gcloud --quiet config set container/cluster $CLUSTER_NAME
+      - gcloud container clusters get-credentials $CLUSTER_NAME
+
+      # Push image
+      - gcloud docker push gcr.io/$PROJECT_NAME/node-server:$CIRCLE_SHA1
+
+      # Pre deploy services setup
+      - terraform remote config -backend=s3 -backend-config="bucket=terraform" -backend-config="key=$CIRCLE_PROJECT_REPONAME/$CIRCLE_BRANCH/terraform.tfstate" -backend-config="region=eu-west-1"
+      - >
+        export TF_VAR_node_service_ip="$(kubectl get services my-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || '93.184.216.34')";
+        terraform apply ./deployment/terraform || (terraform remote push && exit 1);
+      - terraform remote push
+
+      # Deploy
+      - kubectl apply -f ./deployment/kubernetes/node-server.json
+      - kubectl apply -f ./deployment/kubernetes/node-service.json
+
+      - sleep 10
+
+      # Post deploy services setup
+      - >
+        export TF_VAR_node_service_ip="$(kubectl get services my-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')";
+        terraform apply ./deployment/terraform || (terraform remote push && exit 1);
+      - terraform remote push
+
+      # Logging
+      - kubectl cluster-info
+      - kubectl get nodes
+      - kubectl get deployments
+      - kubectl get services
+      - kubectl get services my-service
+      - kubectl get endpoints
+      - kubectl get pods

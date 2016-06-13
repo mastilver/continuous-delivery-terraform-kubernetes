@@ -1,0 +1,24 @@
+{
+  "name": "continuous-delivery-terraform-kubernetes",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "exit 0",
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mastilver/continuous-delivery-terraform-kubernetes.git"
+  },
+  "keywords": [],
+  "author": "Thomas sileghem <th.sileghem@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mastilver/continuous-delivery-terraform-kubernetes/issues"
+  },
+  "homepage": "https://github.com/mastilver/continuous-delivery-terraform-kubernetes#readme",
+  "dependencies": {
+    "express": "^4.13.4"
+  }
+}
