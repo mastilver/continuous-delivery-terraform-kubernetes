@@ -19,6 +19,6 @@
   },
   "homepage": "https://github.com/mastilver/continuous-delivery-terraform-kubernetes#readme",
   "dependencies": {
-    "express": "^4.13.4"
+    "express": "^4.14.1"
   }
 }
